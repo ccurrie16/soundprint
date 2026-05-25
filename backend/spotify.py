@@ -63,6 +63,9 @@ def get_track_info(title: str, artist: str) -> dict:
             })
 
 
+    images = track["album"].get("images", [])
+    album_art = images[0]["url"] if images else None
+
     return {
         "title": track["name"],
         "artist": track["artists"][0]["name"],
@@ -70,5 +73,6 @@ def get_track_info(title: str, artist: str) -> dict:
         "release_date": track["album"]["release_date"],
         "genres": genres,
         "spotify_url": track["external_urls"]["spotify"],
+        "album_art": album_art,
         "similar_songs": similar,
     }

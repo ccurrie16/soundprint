@@ -34,13 +34,18 @@ export default function App() {
 
   return (
     <div className="app">
-      <h1>Soundprint</h1>
-      <p className="tagline">Upload a song to identify its genre</p>
+      <header>
+        <h1>Soundprint</h1>
+        <p className="tagline">Upload a song to identify its genre</p>
+      </header>
 
       <form onSubmit={handleSubmit}>
-        <input type="file" accept="audio/*" onChange={(e) => setFile(e.target.files[0])} />
+        <label className={`file-drop ${file ? 'has-file' : ''}`}>
+          <input type="file" accept="audio/*" onChange={(e) => setFile(e.target.files[0])} />
+          {file ? <span>{file.name}</span> : <span>Choose an audio file</span>}
+        </label>
         <button type="submit" disabled={!file || loading}>
-          {loading ? 'Identifying...' : 'Identify'}
+          {loading ? <span className="spinner" /> : 'Identify'}
         </button>
       </form>
 
@@ -48,18 +53,25 @@ export default function App() {
 
       {result && (
         <div className="result">
-          <h2>{result.title}</h2>
-          <p className="artist">{result.artist}</p>
-          <p className="album">{result.album} · {result.release_date?.slice(0, 4)}</p>
-
-          <div className="genres">
-            {result.genres?.[0] && <span className="genre">{result.genres[0]}</span>}
-            {result.subgenre && <span className="genre subgenre">{result.subgenre}</span>}
+          <div className="result-top">
+            {result.album_art && (
+              <img src={result.album_art} alt="Album art" className="album-art" />
+            )}
+            <div className="result-info">
+              <h2>{result.title}</h2>
+              <p className="artist">{result.artist}</p>
+              <p className="album">{result.album} · {result.release_date?.slice(0, 4)}</p>
+              <div className="genres">
+                {result.genres?.[0] && <span className="genre">{result.genres[0]}</span>}
+                {result.subgenre && result.subgenre !== result.genres?.[0] && (
+                  <span className="genre subgenre">{result.subgenre}</span>
+                )}
+              </div>
+              <a href={result.spotify_url} target="_blank" rel="noreferrer" className="spotify-link">
+                Open on Spotify ↗
+              </a>
+            </div>
           </div>
-
-          <a href={result.spotify_url} target="_blank" rel="noreferrer" className="spotify-link">
-            Open on Spotify
-          </a>
 
           {result.similar_songs?.length > 0 && (
             <div className="similar">
@@ -68,7 +80,8 @@ export default function App() {
                 {result.similar_songs.map((s, i) => (
                   <li key={i}>
                     <a href={s.spotify_url} target="_blank" rel="noreferrer">
-                      {s.title} — {s.artist}
+                      <span className="similar-title">{s.title}</span>
+                      <span className="similar-artist">{s.artist}</span>
                     </a>
                   </li>
                 ))}
