@@ -1,7 +1,49 @@
 import { useState } from 'react'
 import './App.css'
 
-export default function App() {
+function Result({ result }) {
+  return (
+    <div className="result">
+      <div className="result-top">
+        {result.album_art && (
+          <img src={result.album_art} alt="Album art" className="album-art" />
+        )}
+        <div className="result-info">
+          <h2>{result.title}</h2>
+          <p className="artist">{result.artist}</p>
+          <p className="album">{result.album} · {result.release_date?.slice(0, 4)}</p>
+          <div className="genres">
+            {result.genres?.[0] && <span className="genre">{result.genres[0]}</span>}
+            {result.subgenre && result.subgenre !== result.genres?.[0] && (
+              <span className="genre subgenre">{result.subgenre}</span>
+            )}
+          </div>
+          <a href={result.spotify_url} target="_blank" rel="noreferrer" className="spotify-link">
+            Open on Spotify ↗
+          </a>
+        </div>
+      </div>
+
+      {result.similar_songs?.length > 0 && (
+        <div className="similar">
+          <h3>Similar Songs</h3>
+          <ul>
+            {result.similar_songs.map((s, i) => (
+              <li key={i}>
+                <a href={s.spotify_url} target="_blank" rel="noreferrer">
+                  <span className="similar-title">{s.title}</span>
+                  <span className="similar-artist">{s.artist}</span>
+                </a>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function UploadTab() {
   const [file, setFile] = useState(null)
   const [result, setResult] = useState(null)
   const [loading, setLoading] = useState(false)
@@ -33,12 +75,7 @@ export default function App() {
   }
 
   return (
-    <div className="app">
-      <header>
-        <h1>Soundprint</h1>
-        <p className="tagline">Upload a song to identify its genre</p>
-      </header>
-
+    <>
       <form onSubmit={handleSubmit}>
         <label className={`file-drop ${file ? 'has-file' : ''}`}>
           <input type="file" accept="audio/*" onChange={(e) => setFile(e.target.files[0])} />
@@ -48,48 +85,118 @@ export default function App() {
           {loading ? <span className="spinner" /> : 'Identify'}
         </button>
       </form>
+      {error && <p className="error">{error}</p>}
+      {result && <Result result={result} />}
+    </>
+  )
+}
+
+function SearchTab() {
+  const [query, setQuery] = useState('')
+  const [searchResults, setSearchResults] = useState([])
+  const [result, setResult] = useState(null)
+  const [loading, setLoading] = useState(false)
+  const [loadingId, setLoadingId] = useState(null)
+  const [error, setError] = useState(null)
+
+  async function handleSearch(e) {
+    e.preventDefault()
+    if (!query.trim()) return
+    setLoading(true)
+    setSearchResults([])
+    setResult(null)
+    setError(null)
+
+    try {
+      const res = await fetch(`http://localhost:8000/search?q=${encodeURIComponent(query)}`)
+      const data = await res.json()
+      setSearchResults(data)
+    } catch {
+      setError('Failed to connect to server')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function handleSelect(track_id) {
+    setLoadingId(track_id)
+    setResult(null)
+    setError(null)
+
+    try {
+      const res = await fetch(`http://localhost:8000/track/${track_id}`)
+      const data = await res.json()
+      if (data.error) setError(data.error)
+      else {
+        setResult(data)
+        setSearchResults([])
+      }
+    } catch {
+      setError('Failed to connect to server')
+    } finally {
+      setLoadingId(null)
+    }
+  }
+
+  return (
+    <>
+      <form onSubmit={handleSearch}>
+        <input
+          className="search-input"
+          type="text"
+          placeholder="Search for a song or artist..."
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+        />
+        <button type="submit" disabled={!query.trim() || loading}>
+          {loading ? <span className="spinner" /> : 'Search'}
+        </button>
+      </form>
 
       {error && <p className="error">{error}</p>}
 
-      {result && (
-        <div className="result">
-          <div className="result-top">
-            {result.album_art && (
-              <img src={result.album_art} alt="Album art" className="album-art" />
-            )}
-            <div className="result-info">
-              <h2>{result.title}</h2>
-              <p className="artist">{result.artist}</p>
-              <p className="album">{result.album} · {result.release_date?.slice(0, 4)}</p>
-              <div className="genres">
-                {result.genres?.[0] && <span className="genre">{result.genres[0]}</span>}
-                {result.subgenre && result.subgenre !== result.genres?.[0] && (
-                  <span className="genre subgenre">{result.subgenre}</span>
-                )}
-              </div>
-              <a href={result.spotify_url} target="_blank" rel="noreferrer" className="spotify-link">
-                Open on Spotify ↗
-              </a>
-            </div>
-          </div>
-
-          {result.similar_songs?.length > 0 && (
-            <div className="similar">
-              <h3>Similar Songs</h3>
-              <ul>
-                {result.similar_songs.map((s, i) => (
-                  <li key={i}>
-                    <a href={s.spotify_url} target="_blank" rel="noreferrer">
-                      <span className="similar-title">{s.title}</span>
-                      <span className="similar-artist">{s.artist}</span>
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-        </div>
+      {searchResults.length > 0 && (
+        <ul className="search-results">
+          {searchResults.map((t) => (
+            <li key={t.track_id}>
+              <button className="search-result-btn" onClick={() => handleSelect(t.track_id)} disabled={loadingId === t.track_id}>
+                {t.album_art && <img src={t.album_art} alt="" className="search-thumb" />}
+                <div className="search-result-info">
+                  <span className="similar-title">{t.title}</span>
+                  <span className="similar-artist">{t.artist} · {t.album}</span>
+                </div>
+                {loadingId === t.track_id && <span className="spinner dark" />}
+              </button>
+            </li>
+          ))}
+        </ul>
       )}
+
+      {result && <Result result={result} />}
+    </>
+  )
+}
+
+export default function App() {
+  const [tab, setTab] = useState('upload')
+
+  return (
+    <div className="app">
+      <header>
+        <h1>Soundprint</h1>
+        <p className="tagline">Identify any song's genre</p>
+      </header>
+
+      <div className="tabs">
+        <button className={`tab ${tab === 'upload' ? 'active' : ''}`} onClick={() => setTab('upload')}>
+          Upload
+        </button>
+        <button className={`tab ${tab === 'search' ? 'active' : ''}`} onClick={() => setTab('search')}>
+          Search
+        </button>
+      </div>
+
+      {tab === 'upload' ? <UploadTab /> : <SearchTab />}
     </div>
   )
 }

@@ -59,3 +59,18 @@ async def identify(file: UploadFile = File(...)):
     track_info["subgenre"] = subgenre
 
     return track_info
+
+
+@app.get("/search")
+def search(q: str):
+    return spotify.search_tracks(q)
+
+
+@app.get("/track/{track_id}")
+def track(track_id: str):
+    track_info = spotify.get_track_by_id(track_id)
+    if not track_info:
+        return {"error": "Track not found"}
+    subgenre = get_subgenre(track_info["title"], track_info["artist"], track_info["genres"])
+    track_info["subgenre"] = subgenre
+    return track_info
