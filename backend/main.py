@@ -1,4 +1,5 @@
 import os
+import json
 import requests
 from fastapi import FastAPI, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
@@ -8,7 +9,7 @@ import spotify
 
 load_dotenv()
 
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 
 app = FastAPI()
 
@@ -19,21 +20,57 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+MOOD_WORDS = {
+    "melancholic", "dark", "energetic", "upbeat", "chill", "aggressive", "romantic",
+    "sad", "happy", "intense", "dreamy", "smooth", "raw", "emotional", "introspective",
+    "mellow", "atmospheric", "lo-fi", "ambient", "hype", "party", "conscious", "soulful",
+}
 
-def get_subgenre(title: str, artist: str, genres: list) -> str:
+ERA_PATTERNS = ["1950s", "1960s", "1970s", "1980s", "1990s", "2000s", "2010s", "2020s",
+                "50s", "60s", "70s", "80s", "90s"]
+
+
+def _build_fallback(genres: list) -> dict:
+    primary = genres[0] if genres else "Unknown"
+    subgenre = genres[1] if len(genres) > 1 else ""
+    mood = next((t for t in genres if t.lower() in MOOD_WORDS), "")
+    era = next((t for t in genres if any(e in t.lower() for e in ERA_PATTERNS)), "")
+    desc = f"{primary} music{' with ' + subgenre + ' elements' if subgenre else ''}."
+    return {"primary_genre": primary, "subgenre": subgenre, "mood": mood, "era": era, "description": desc}
+
+
+def get_genre_info(title: str, artist: str, genres: list) -> dict:
+    tags_str = ", ".join(genres) if genres else "unknown"
     prompt = (
-        f'The song "{title}" by {artist} has these Spotify genres: {", ".join(genres)}. '
-        f"Give me one specific subgenre label for this song. Reply with only the subgenre, nothing else."
+        f'The song "{title}" by {artist} has these genre tags: {tags_str}. '
+        f'Return a JSON object with exactly these keys: '
+        f'"primary_genre" (main genre), '
+        f'"subgenre" (specific subgenre), '
+        f'"mood" (2-3 mood words e.g. "Dark, Introspective"), '
+        f'"era" (decade e.g. "2010s"), '
+        f'"description" (2 sentences about the sonic characteristics of this genre for this artist). '
+        f'Return only valid JSON with no markdown or extra text.'
     )
     try:
         response = requests.post(
-            f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key={GEMINI_API_KEY}",
-            json={"contents": [{"parts": [{"text": prompt}]}]},
+            "https://api.groq.com/openai/v1/chat/completions",
+            headers={"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json"},
+            json={
+                "model": "llama-3.1-8b-instant",
+                "messages": [{"role": "user", "content": prompt}],
+                "temperature": 0.3,
+            },
         )
-        data = response.json()
-        return data["candidates"][0]["content"]["parts"][0]["text"].strip()
+        text = response.json()["choices"][0]["message"]["content"].strip()
+        return json.loads(text)
     except Exception:
-        return genres[0] if genres else ""
+        return _build_fallback(genres)
+
+
+def enrich(track_info: dict) -> dict:
+    genre_info = get_genre_info(track_info["title"], track_info["artist"], track_info["genres"])
+    track_info["genre_info"] = genre_info
+    return track_info
 
 
 @app.post("/identify")
@@ -55,10 +92,7 @@ async def identify(file: UploadFile = File(...)):
     if not track_info:
         return {"error": "Could not find song on Spotify"}
 
-    subgenre = get_subgenre(title, artist, track_info["genres"])
-    track_info["subgenre"] = subgenre
-
-    return track_info
+    return enrich(track_info)
 
 
 @app.get("/search")
@@ -71,6 +105,4 @@ def track(track_id: str):
     track_info = spotify.get_track_by_id(track_id)
     if not track_info:
         return {"error": "Track not found"}
-    subgenre = get_subgenre(track_info["title"], track_info["artist"], track_info["genres"])
-    track_info["subgenre"] = subgenre
-    return track_info
+    return enrich(track_info)

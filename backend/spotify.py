@@ -29,7 +29,7 @@ def _get_genres_from_musicbrainz(artist_name: str) -> list:
         if not artists:
             return []
         tags = sorted(artists[0].get("tags", []), key=lambda x: x.get("count", 0), reverse=True)
-        return [t["name"] for t in tags[:3]]
+        return [t["name"] for t in tags[:10]]
     except Exception:
         return []
 
