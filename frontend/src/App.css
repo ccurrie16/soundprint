@@ -329,3 +329,46 @@ button:disabled {
   color: #555;
   font-size: 0.85rem;
 }
+
+.genre-breakdown {
+  background: #1a1a1a;
+  border: 1px solid #2a2a2a;
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.breakdown-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.breakdown-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.breakdown-label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: #555;
+}
+
+.breakdown-value {
+  font-size: 0.95rem;
+  color: #f0f0f0;
+  font-weight: 500;
+}
+
+.genre-description {
+  font-size: 0.9rem;
+  color: #888;
+  line-height: 1.6;
+  border-top: 1px solid #2a2a2a;
+  padding-top: 14px;
+}

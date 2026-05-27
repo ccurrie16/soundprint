@@ -2,6 +2,8 @@ import { useState } from 'react'
 import './App.css'
 
 function Result({ result }) {
+  const gi = result.genre_info || {}
+
   return (
     <div className="result">
       <div className="result-top">
@@ -13,16 +15,27 @@ function Result({ result }) {
           <p className="artist">{result.artist}</p>
           <p className="album">{result.album} · {result.release_date?.slice(0, 4)}</p>
           <div className="genres">
-            {result.genres?.[0] && <span className="genre">{result.genres[0]}</span>}
-            {result.subgenre && result.subgenre !== result.genres?.[0] && (
-              <span className="genre subgenre">{result.subgenre}</span>
-            )}
+            {result.genres?.map((g, i) => (
+              <span key={i} className="genre">{g}</span>
+            ))}
           </div>
           <a href={result.spotify_url} target="_blank" rel="noreferrer" className="spotify-link">
             Open on Spotify ↗
           </a>
         </div>
       </div>
+
+      {gi.primary_genre && (
+        <div className="genre-breakdown">
+          <div className="breakdown-grid">
+            {gi.primary_genre && <div className="breakdown-item"><span className="breakdown-label">Genre</span><span className="breakdown-value">{gi.primary_genre}</span></div>}
+            {gi.subgenre && <div className="breakdown-item"><span className="breakdown-label">Subgenre</span><span className="breakdown-value">{gi.subgenre}</span></div>}
+            {gi.mood && <div className="breakdown-item"><span className="breakdown-label">Mood</span><span className="breakdown-value">{gi.mood}</span></div>}
+            {gi.era && <div className="breakdown-item"><span className="breakdown-label">Era</span><span className="breakdown-value">{gi.era}</span></div>}
+          </div>
+          {gi.description && <p className="genre-description">{gi.description}</p>}
+        </div>
+      )}
 
       {result.similar_songs?.length > 0 && (
         <div className="similar">
@@ -42,6 +55,7 @@ function Result({ result }) {
     </div>
   )
 }
+
 
 function UploadTab() {
   const [file, setFile] = useState(null)
