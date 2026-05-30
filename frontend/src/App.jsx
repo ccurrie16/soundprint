@@ -74,7 +74,7 @@ function UploadTab() {
     formData.append('file', file)
 
     try {
-      const res = await fetch('http://localhost:8000/identify', {
+      const res = await fetch('https://soundprint-production.up.railway.app/identify', {
         method: 'POST',
         body: formData,
       })
@@ -122,7 +122,7 @@ function SearchTab() {
     setError(null)
 
     try {
-      const res = await fetch(`http://localhost:8000/search?q=${encodeURIComponent(query)}`)
+      const res = await fetch(`https://soundprint-production.up.railway.app/search?q=${encodeURIComponent(query)}`)
       const data = await res.json()
       setSearchResults(data)
     } catch {
@@ -138,7 +138,7 @@ function SearchTab() {
     setError(null)
 
     try {
-      const res = await fetch(`http://localhost:8000/track/${track_id}`)
+      const res = await fetch(`https://soundprint-production.up.railway.app/track/${track_id}`)
       const data = await res.json()
       if (data.error) setError(data.error)
       else {
