@@ -51,14 +51,12 @@ def _get_genres_and_similar(artist_id: str, artist_name: str, track_id: str, hea
 
     similar = []
     seen_artists = {artist_id}
-    for genre in genres[:3]:
-        if len(similar) >= 5:
-            break
-        genre_query = genre.replace(" ", "+")
+    if genres:
+        genre_query = " ".join(f"genre:\"{g}\"" for g in genres[:3])
         search = requests.get(
             "https://api.spotify.com/v1/search",
             headers=headers,
-            params={"q": f"genre:{genre_query}", "type": "track", "limit": 10},
+            params={"q": genre_query, "type": "track", "limit": 20},
         ).json()
         for t in search.get("tracks", {}).get("items", []):
             artist = t["artists"][0]
