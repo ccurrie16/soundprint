@@ -50,18 +50,23 @@ def _get_genres_and_similar(artist_id: str, artist_name: str, track_id: str, hea
         genres = _get_genres_from_musicbrainz(artist_name)
 
     similar = []
-    if genres:
-        genre_query = genres[0].replace(" ", "+")
+    seen_artists = {artist_id}
+    for genre in genres[:3]:
+        if len(similar) >= 5:
+            break
+        genre_query = genre.replace(" ", "+")
         search = requests.get(
             "https://api.spotify.com/v1/search",
             headers=headers,
             params={"q": f"genre:{genre_query}", "type": "track", "limit": 10},
         ).json()
         for t in search.get("tracks", {}).get("items", []):
-            if t["id"] != track_id and t["artists"][0]["id"] != artist_id:
+            artist = t["artists"][0]
+            if t["id"] != track_id and artist["id"] not in seen_artists:
+                seen_artists.add(artist["id"])
                 similar.append({
                     "title": t["name"],
-                    "artist": t["artists"][0]["name"],
+                    "artist": artist["name"],
                     "spotify_url": t["external_urls"]["spotify"],
                 })
             if len(similar) >= 5:
