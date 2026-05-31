@@ -62,6 +62,7 @@ function UploadTab() {
   const [result, setResult] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
+  const [dragging, setDragging] = useState(false)
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -88,12 +89,24 @@ function UploadTab() {
     }
   }
 
+  function handleDrop(e) {
+    e.preventDefault()
+    setDragging(false)
+    const dropped = e.dataTransfer.files[0]
+    if (dropped && dropped.type.startsWith('audio/')) setFile(dropped)
+  }
+
   return (
     <>
       <form onSubmit={handleSubmit}>
-        <label className={`file-drop ${file ? 'has-file' : ''}`}>
+        <label
+          className={`file-drop ${file ? 'has-file' : ''} ${dragging ? 'dragging' : ''}`}
+          onDragOver={(e) => { e.preventDefault(); setDragging(true) }}
+          onDragLeave={() => setDragging(false)}
+          onDrop={handleDrop}
+        >
           <input type="file" accept="audio/*" onChange={(e) => setFile(e.target.files[0])} />
-          {file ? <span>{file.name}</span> : <span>Choose an audio file</span>}
+          {file ? <span>{file.name}</span> : <span>{dragging ? 'Drop it!' : 'Choose or drag an audio file'}</span>}
         </label>
         <button type="submit" disabled={!file || loading}>
           {loading ? <span className="spinner" /> : 'Identify'}
